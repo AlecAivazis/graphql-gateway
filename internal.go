@@ -2,7 +2,6 @@ package gateway
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/99designs/gqlgen/graphql/introspection"
 	"github.com/mitchellh/mapstructure"
@@ -10,10 +9,6 @@ import (
 
 	"github.com/nautilus/graphql"
 )
-
-// internalSchema is a graphql schema that exists at the gateway level and is merged with the
-// other schemas that the gateway wraps.
-var internalSchema *ast.Schema
 
 // internalSchemaLocation is the location that functions should take to identify a remote schema
 // that points to the gateway's internal schema.
@@ -309,22 +304,4 @@ func (g *Gateway) introspectDirectiveSlice(directives []introspection.Directive,
 	}
 
 	return result
-}
-
-func init() {
-	// load the internal
-	schema, err := graphql.LoadSchema(`
-		interface Node {
-			id: ID!
-		}
-
-		type Query {
-			node(id: ID!): Node
-		}
-	`)
-	if schema == nil {
-		panic(fmt.Sprintf("Syntax error in schema string: %s", err.Error()))
-	}
-
-	internalSchema = schema
 }

@@ -106,9 +106,20 @@ func (g *Gateway) Execute(ctx *RequestContext, plans QueryPlanList) (map[string]
 	return result, nil
 }
 
-func (g *Gateway) internalSchema() *ast.Schema {
+func (g *Gateway) internalSchema() (*ast.Schema, error) {
 	// we start off with the internal schema
-	schema := internalSchema
+	schema, err := graphql.LoadSchema(`
+		interface Node {
+			id: ID!
+		}
+
+		type Query {
+			node(id: ID!): Node
+		}
+	`)
+	if schema == nil {
+		return nil, fmt.Errorf("Syntax error in schema string: %s", err.Error())
+	}
 
 	// then we have to add any query fields we have
 	for _, field := range g.queryFields {
@@ -120,7 +131,7 @@ func (g *Gateway) internalSchema() *ast.Schema {
 	}
 
 	// we're done
-	return schema
+	return schema, nil
 }
 
 // New instantiates a new schema with the required stuffs.
@@ -161,7 +172,10 @@ func New(sources []*graphql.RemoteSchema, configs ...Option) (*Gateway, error) {
 		}
 	}
 
-	internal := gateway.internalSchema()
+	internal, err := gateway.internalSchema()
+	if err != nil {
+		return nil, err
+	}
 	// find the field URLs before we merge schemas. We need to make sure to include
 	// the fields defined by the gateway's internal schema
 	urls := fieldURLs(sources, true).Concat(
